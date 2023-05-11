@@ -2,6 +2,26 @@ const dotenv = require('dotenv');
 dotenv.config();
 const ESV_API_KEY = process.env.ESV_API_KEY;
 
+const fs = require('fs');
+const logDir = "./logs";
+
+if (!fs.existsSync(logDir))
+  fs.mkdirSync(logDir);
+
+const start = new Date();
+const logFile = fs.createWriteStream(`logs/${start.valueOf()}.log`);
+
+function log(isRequest, ref, ip) {
+  const time = new Date();
+  let output = "←️ Response: ";
+  if (isRequest)
+    output = "→️ Request:  ";
+  output += `For "${ref}" at "${time.toISOString()}" from "${ip}"`;
+
+  console.log(output);
+  logFile.write(output + "\n");
+}
+
 const axios = require('axios');
 
 async function getEsvText(passage) {
@@ -32,7 +52,6 @@ async function getEsvText(passage) {
   }
 }
 
-
 const express = require("express");
 const cors = require('cors');
 const app = express();
@@ -43,9 +62,12 @@ app.use(cors({
 
 app.get("/esv/:ref", async (req, res) => {
   const ref = req.params.ref;
-  console.log(`→️ Request received for '${ref}'`);
+  const ip = req.ip;
+  log(true, ref, ip);
+
   const text = await getEsvText(ref);
-  console.log(`←️ Replied to request for '${ref}'`);
+
+  log(false, ref, ip);
   res.send(text);
 });
 
